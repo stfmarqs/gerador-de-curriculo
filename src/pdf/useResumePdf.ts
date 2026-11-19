@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Resume, Template } from '../curriculo/model'
 
-type DocumentState = { key: string; url: string }
+type DocumentState = { key: string; url: string; blob: Blob }
 type RequestState = { key: string; task: Promise<DocumentState> }
 
 export function useResumePdf() {
@@ -36,7 +36,7 @@ export function useResumePdf() {
       if (stale()) throw new DOMException('Prévia substituída', 'AbortError')
 
       const old = displayed.current
-      const next = { key, url: URL.createObjectURL(blob) }
+      const next = { key, url: URL.createObjectURL(blob), blob }
       displayed.current = next
       setDocument(next)
       if (old) URL.revokeObjectURL(old.url)

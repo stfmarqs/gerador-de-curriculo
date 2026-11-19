@@ -12,6 +12,14 @@ const PdfPreview = lazy(() => import('../pdf/PdfPreview').catch(() => ({
   default: () => <p role="status">Não foi possível abrir a prévia. Você ainda pode baixar o PDF.</p>,
 })))
 const initialDraft: Draft = { resume: blankResume(), template: 'classico' }
+const canSharePdf = navigator.maxTouchPoints > 0
+  && typeof navigator.share === 'function'
+  && navigator.canShare?.({ files: [new File(['%PDF-1.4'], 'curriculo.pdf', { type: 'application/pdf' })] })
+
+function pdfFilename(resume: Resume) {
+  const name = resume.personal.name.trim().replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 70)
+  return 'curriculo-' + name + '.pdf'
+}
 const storageMessages = {
   empty: 'O rascunho fica neste navegador e pode ser apagado ao limpar seus dados.',
   saved: 'Rascunho salvo neste navegador. Ele pode ser apagado ao limpar os dados do navegador.',
@@ -40,8 +48,12 @@ export default function Editor() {
   const [confirm, setConfirm] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [notice, setNotice] = useState('')
+  const [exportStatus, setExportStatus] = useState('')
+  const [fallbackKey, setFallbackKey] = useState('')
   const lastStored = useRef(JSON.stringify(initial))
   const { document: pdf, request, clear, error } = useResumePdf()
+  const prepared = pdf?.key === JSON.stringify([template, edited]) ? pdf : undefined
+  const exportLabel = canSharePdf ? 'Salvar ou compartilhar PDF' : 'Baixar PDF'
 
   useEffect(() => {
     const next = { resume: edited, template }
@@ -65,32 +77,48 @@ export default function Editor() {
   async function download() {
     clearErrors()
     setNotice('')
+    setExportStatus('')
+    setFallbackKey('')
     const resume = structuredClone(getValues())
     const errors = Object.entries(validateExport(resume))
     if (errors.length) {
       for (const [name, message] of errors) setError(name as FieldPath<Resume>, { message })
       setMobileView('edit')
-      setNotice('Revise os campos indicados para baixar o PDF.')
+      setNotice('Revise os campos indicados para exportar o PDF.')
       requestAnimationFrame(() => setFocus(errors[0][0] as FieldPath<Resume>))
       return
     }
 
     setExporting(true)
     try {
-      const file = await request(resume, template)
+      const file = prepared ?? await request(resume, template)
       if (JSON.stringify(resume) !== JSON.stringify(getValues())) {
-        setNotice('O currículo foi alterado. Selecione Baixar PDF novamente.')
+        setNotice('O currículo foi alterado. Selecione “' + exportLabel + '” novamente.')
+        return
+      }
+      const filename = pdfFilename(resume)
+      if (canSharePdf) {
+        if (!prepared) {
+          setExportStatus('PDF pronto. Toque em “Salvar ou compartilhar PDF” para continuar.')
+          return
+        }
+        try {
+          await navigator.share({ files: [new File([file.blob], filename, { type: 'application/pdf' })] })
+        } catch (failure) {
+          if (!(failure instanceof DOMException && failure.name === 'AbortError')) {
+            setFallbackKey(file.key)
+          }
+        }
         return
       }
       const link = window.document.createElement('a')
-      const name = resume.personal.name.trim().replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 70)
       link.href = file.url
-      link.download = 'curriculo-' + name + '.pdf'
+      link.download = filename
       window.document.body.append(link)
       link.click()
       link.remove()
     } catch {
-      setNotice('Não foi possível baixar o PDF. Selecione Baixar PDF para tentar novamente.')
+      setNotice('Não foi possível preparar o PDF. Selecione “' + exportLabel + '” para tentar novamente.')
     } finally {
       setExporting(false)
     }
@@ -103,6 +131,8 @@ export default function Editor() {
     setTemplate(initialDraft.template)
     setStorage(clearDraft(browserStorage) ? 'empty' : 'unavailable')
     setNotice('')
+    setExportStatus('')
+    setFallbackKey('')
     setMobileView('edit')
     setConfirm(false)
   }
@@ -120,9 +150,15 @@ export default function Editor() {
     <main id="editor-main" className={styles.main} tabIndex={-1}>
       <div className={styles.intro}>
         <div><h1>Monte seu currículo</h1><p className={styles.storage} role="status">{storageMessages[storage]}</p></div>
-        <Button size="md" type="button" loading={exporting} onClick={() => void download()}>Baixar PDF</Button>
+        <Button size="md" type="button" loading={exporting} onClick={() => void download()}>{exportLabel}</Button>
       </div>
       {notice && <p className={styles.notice} role="alert">{notice}</p>}
+      <div role="status">
+        {exportStatus && prepared && <p className={styles.hint}>{exportStatus}</p>}
+        {prepared && prepared.key === fallbackKey && <p className={styles.hint}>
+          <a href={prepared.url} target="_blank" rel="noopener">Abrir PDF</a> e usar o menu de compartilhamento do navegador para salvar.
+        </p>}
+      </div>
       <div className={styles.mobileSwitch} role="group" aria-label="Visualização do editor">
         <button aria-pressed={mobileView === 'edit'} type="button" onClick={() => setMobileView('edit')}>Editar</button>
         <button aria-pressed={mobileView === 'preview'} type="button" onClick={() => setMobileView('preview')}>Prévia</button>
