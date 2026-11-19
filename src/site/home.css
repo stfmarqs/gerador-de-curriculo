@@ -47,3 +47,15 @@
   .choices,.faq{grid-template-columns:1fr}
   .choices{gap:4px}
 }
+
+.top nav{display:flex;gap:clamp(11px,3vw,24px);align-items:center}
+.guide-links{padding:clamp(35px,6vw,65px) 0;border-bottom:1px solid var(--line);background:var(--surface)}
+.guide-links h2{margin:0;font-family:Georgia,serif;font-size:clamp(1.75rem,3.6vw,2.65rem);font-weight:normal;letter-spacing:-.045em;line-height:1.1}
+.guide-links ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 clamp(20px,5vw,55px);margin:20px 0 0;padding:0;list-style:none}
+.guide-links li{border-top:1px solid var(--line);padding:12px 0}
+.guide-links a{display:inline-block;font-size:1.08rem;font-weight:700;text-underline-offset:4px;color:var(--green)}
+.guide-links p{margin:3px 0 0;color:var(--muted)}
+@media(max-width:540px){
+  .guide-links ul{grid-template-columns:1fr}
+  .top nav{font-size:.93rem}
+}
