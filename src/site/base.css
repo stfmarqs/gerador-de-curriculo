@@ -1,0 +1,14 @@
+:root{
+  --surface:#fff; --background:#f8faf7; --ink:#172e27; --muted:#425a51; --line:#d8e2d9; --green:#225c47;
+  color:var(--ink); background:var(--background);
+  font-family:"Source Sans 3", system-ui, sans-serif;
+  line-height:1.5;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0}
+a{color:inherit}
+:where(a,button,input,select,textarea,summary):focus-visible{outline:2px solid #136d5a;outline-offset:3px}
+.brand{display:inline-flex;gap:9px;align-items:center;font-size:clamp(.95rem,3.7vw,1.12rem);font-weight:700;text-decoration:none;line-height:1.1;color:var(--ink)}
+.brand-mark{display:inline-grid;place-items:center;width:30px;height:34px;border-radius:4px 9px 4px 4px;background:var(--green);color:white;font-family:Georgia,serif;font-size:1.35rem;font-weight:normal;flex-shrink:0}
+.skip-link{position:fixed;top:8px;left:8px;z-index:10;padding:8px 12px;background:white;transform:translateY(-150%)}
+.skip-link:focus{transform:none}
